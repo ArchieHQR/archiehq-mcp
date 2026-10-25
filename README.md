@@ -17,7 +17,7 @@ Archie's remote MCP server: one home for the tools, reachable over HTTPS at
 | `memo_write` | `{ text }` | `{ id, created_at }` |
 | `memo_search` | `{ query, limit? }` | `{ notes: [{ id, text, created_at, author }] }` |
 | `upload` | `{ content, filename?, encoding?, content_type? }` | `{ url, id, filename, content_type, size }` |
-| `transcribe` | `{ url, language? }` | `{ segments: [{ start, end, text }], text, language, duration }` |
+| `transcribe` | `{ url, language? }` | `{ segments: [{ start, end, text }], language, duration }` |
 
 Storage: D1 (notes), R2 (files, public links at `/f/<id>/<name>`), KV (OAuth, hashed tokens),
 Workers AI `@cf/openai/whisper-large-v3-turbo` (transcribe).
