@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "archiehq-mcp",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  "account_id": "7900f87f432b35f4c98e2a7479ee801f",
+  "observability": { "enabled": true },
+  "routes": [{ "pattern": "mcp.archiehq.pl", "custom_domain": true }],
+  "workers_dev": true,
+  "ai": { "binding": "AI" },
+  "kv_namespaces": [{ "binding": "OAUTH", "id": "ad1975506f38436ea04d7fd03912ca50" }],
+  "d1_databases": [{ "binding": "DB", "database_name": "archiehq-mcp", "database_id": "201d93e1-4be0-480a-907e-db56c256f9c4" }],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "archiehq-mcp-files" }],
+  "ratelimits": [
+    { "name": "TOOL_LIMIT", "namespace_id": "3001", "simple": { "limit": 60, "period": 60 } },
+    { "name": "AUTH_LIMIT", "namespace_id": "3002", "simple": { "limit": 10, "period": 60 } }
+  ],
+  "vars": {
+    "ORIGIN": "https://mcp.archiehq.pl",
+    "SERVER_NAME": "archiehq-mcp",
+    "SERVER_VERSION": "1.0.0",
+    "WHISPER_MODEL": "@cf/openai/whisper-large-v3-turbo"
+  }
+  // secret: OWNER_PASSPHRASE (set by the owner with `wrangler secret put OWNER_PASSPHRASE`)
+}
