@@ -122,11 +122,10 @@ export const TOOLS = [
             required: ["start", "end", "text"],
           },
         },
-        text: { type: "string", description: "The whole transcript." },
         language: { type: "string" },
         duration: { type: "number", description: "Audio length in seconds." },
       },
-      required: ["segments", "text"],
+      required: ["segments"],
     },
     annotations: { readOnlyHint: true, openWorldHint: true },
   },
@@ -173,7 +172,8 @@ export async function callTool(name, args, ctx) {
   if (problem) return errorResult(`Invalid arguments for ${name}: ${problem}.`);
   try {
     const out = await HANDLERS[name](args ?? {}, ctx);
-    return { content: [{ type: "text", text: JSON.stringify(out) }], structuredContent: out, isError: false };
+    // The data lives in structuredContent; the text block is a one-line summary, not a second copy.
+    return { content: [{ type: "text", text: SUMMARY[name](out) }], structuredContent: out };
   } catch (e) {
     if (e instanceof ToolError) return errorResult(e.message);
     console.error("tool failed", name, e?.stack || e);
@@ -184,6 +184,13 @@ export async function callTool(name, args, ctx) {
 function errorResult(text) {
   return { content: [{ type: "text", text }], isError: true };
 }
+
+const SUMMARY = {
+  memo_write: (o) => `Saved note ${o.id}.`,
+  memo_search: (o) => `${o.notes.length} note(s) found.`,
+  upload: (o) => `Uploaded ${o.filename} (${o.size} B): ${o.url}`,
+  transcribe: (o) => `${o.segments.length} segment(s)${o.duration ? `, ${o.duration} s` : ""}.`,
+};
 
 const HANDLERS = {
   async memo_write({ text }, { env, grant }) {
@@ -236,13 +243,13 @@ const HANDLERS = {
     } catch (e) {
       throw new ToolError(`Speech recognition failed: ${e.message}. Check that the URL is an audio file.`);
     }
-    const round = (n) => Math.round(Number(n || 0) * 1000) / 1000;
+    const round = (n) => Math.round(Number(n || 0) * 100) / 100;
     const segments = (out.segments || [])
       .map((s) => ({ start: round(s.start), end: round(s.end), text: String(s.text || "").trim() }))
       .filter((s) => s.text);
-    const result = { segments, text: String(out.text || segments.map((s) => s.text).join(" ")).trim() };
+    const result = { segments };
     if (out.transcription_info?.language) result.language = out.transcription_info.language;
-    if (out.transcription_info?.duration) result.duration = round(out.transcription_info.duration);
+    if (out.transcription_info?.duration) result.duration = Math.round(out.transcription_info.duration * 10) / 10;
     return result;
   },
 };

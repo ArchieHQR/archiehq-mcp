@@ -151,6 +151,8 @@ if (AUDIO) {
   check("audio upload", !!aurl, aurl);
   const t = await rpc("tools/call", { name: "transcribe", arguments: { url: aurl } });
   const segs = t.body.result?.structuredContent?.segments || [];
+  const r = t.body.result || {};
+  console.log(`RESULT_BYTES total=${JSON.stringify(t.body).length} structured=${JSON.stringify(r.structuredContent).length} text=${JSON.stringify(r.content).length}`);
   check("transcribe segments", segs.length > 0 && typeof segs[0].start === "number", JSON.stringify(segs.slice(0, 2)) || JSON.stringify(t.body).slice(0, 300));
 }
 

@@ -15,7 +15,7 @@ const INSTRUCTIONS =
   "Archie's personal tool server. memo_write saves a note and memo_search finds notes (newest first). upload stores a file and returns a public link. transcribe turns audio at a URL into timestamped segments (seconds).";
 
 function serverInfo(env) {
-  return { name: env.SERVER_NAME, title: "Archie's MCP server", version: env.SERVER_VERSION, websiteUrl: `${env.ORIGIN}/plan` };
+  return { name: env.SERVER_NAME, version: env.SERVER_VERSION };
 }
 
 function rpcError(id, code, message, data, status = 200) {
@@ -146,7 +146,11 @@ async function legacy(id, method, params, env, grant, version) {
     case "tools/call": {
       const res = await runTool(id, params, env, grant, 200);
       if (res instanceof Response) return res;
-      if (version === "2025-03-26") delete res.structuredContent;
+      if (version === "2025-03-26" && res.structuredContent) {
+        // No structuredContent before 2025-06-18: the JSON goes in the text block instead.
+        res.content = [{ type: "text", text: JSON.stringify(res.structuredContent) }];
+        delete res.structuredContent;
+      }
       return ok(res);
     }
     case "server/discover":
