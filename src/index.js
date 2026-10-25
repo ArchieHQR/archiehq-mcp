@@ -69,7 +69,7 @@ async function serveFile(request, env, path) {
   if (!obj) return json({ error: "not_found" }, 404);
   const headers = new Headers();
   headers.set("content-type", obj.httpMetadata?.contentType || "application/octet-stream");
-  headers.set("content-disposition", `inline; filename="${(obj.customMetadata?.filename || id).replace(/"/g, "")}"`);
+  headers.set("content-disposition", `inline; filename="${(obj.customMetadata?.filename || id).split("/").pop().replace(/"/g, "")}"`);
   headers.set("x-content-type-options", "nosniff");
   headers.set("content-security-policy", "sandbox; default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'");
   headers.set("cache-control", "public, max-age=3600");

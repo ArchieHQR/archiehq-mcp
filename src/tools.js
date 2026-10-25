@@ -73,7 +73,7 @@ export const TOOLS = [
       type: "object",
       properties: {
         content: { type: "string", description: "The file content: plain text, or base64 when encoding is \"base64\"." },
-        filename: { type: "string", maxLength: 200, description: "File name, e.g. notes.txt or clip.mp3. Default: file.txt or file.bin." },
+        filename: { type: "string", maxLength: 200, description: "File name, e.g. notes.txt, clip.mp3 or logs/day.log (folders are kept in the link). Default: file.txt or file.bin." },
         encoding: { type: "string", enum: ["text", "base64"], default: "text", description: "How content is encoded." },
         content_type: { type: "string", maxLength: 100, description: "MIME type. Default: guessed from the file name." },
       },
@@ -132,7 +132,7 @@ export const TOOLS = [
 ];
 
 const TYPES = {
-  txt: "text/plain; charset=utf-8", md: "text/markdown; charset=utf-8", csv: "text/csv; charset=utf-8", json: "application/json",
+  txt: "text/plain; charset=utf-8", log: "text/plain; charset=utf-8", md: "text/markdown; charset=utf-8", csv: "text/csv; charset=utf-8", json: "application/json",
   html: "text/html; charset=utf-8", htm: "text/html; charset=utf-8", xml: "application/xml", pdf: "application/pdf",
   png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", svg: "image/svg+xml",
   mp3: "audio/mpeg", wav: "audio/wav", m4a: "audio/mp4", ogg: "audio/ogg", oga: "audio/ogg", opus: "audio/ogg", flac: "audio/flac", webm: "audio/webm",
@@ -221,7 +221,14 @@ const HANDLERS = {
       }
     } else bytes = new TextEncoder().encode(content);
     if (bytes.byteLength > MAX_UPLOAD) throw new ToolError(`The file is ${bytes.byteLength} bytes; the limit is ${MAX_UPLOAD}.`);
-    const clean = (filename || (encoding === "base64" ? "file.bin" : "file.txt")).replace(/[\\/]/g, "_").replace(/[^\w.\- ]+/g, "_").replace(/\s+/g, "-").replace(/^\.+/, "").slice(0, 120) || "file";
+    // Keep folder parts (a/b/c.txt); clean each part; drop empty, "." and ".." parts.
+    const clean =
+      (filename || (encoding === "base64" ? "file.bin" : "file.txt"))
+        .split(/[\\/]+/)
+        .map((p) => p.replace(/[^\w.\- ]+/g, "_").replace(/\s+/g, "-").replace(/^\.+/, "").slice(0, 80))
+        .filter(Boolean)
+        .join("/")
+        .slice(0, 200) || "file";
     const ext = clean.includes(".") ? clean.split(".").pop().toLowerCase() : "";
     const type = (content_type && /^[\w.+-]+\/[\w.+-]+(;\s*[\w-]+=[\w.-]+)?$/.test(content_type) ? content_type : null) || TYPES[ext] || (encoding === "text" ? "text/plain; charset=utf-8" : "application/octet-stream");
     const id = `f_${Date.now().toString(36)}${randomToken(9)}`;
@@ -229,7 +236,7 @@ const HANDLERS = {
     await env.DB.prepare("INSERT INTO files (id, filename, content_type, size, created_at, client_id) VALUES (?, ?, ?, ?, ?, ?)")
       .bind(id, clean, type, bytes.byteLength, nowIso(), grant.client_id)
       .run();
-    return { url: `${env.ORIGIN}/f/${id}/${encodeURIComponent(clean)}`, id, filename: clean, content_type: type, size: bytes.byteLength };
+    return { url: `${env.ORIGIN}/f/${id}/${clean.split("/").map(encodeURIComponent).join("/")}`, id, filename: clean, content_type: type, size: bytes.byteLength };
   },
 
   async transcribe({ url, language }, { env }) {
